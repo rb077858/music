@@ -1,204 +1,587 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מסיבת צבעים בהתאמה אישית</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>מסיבת צבעים בהתאמה אישית</title>
+<meta name="description" content="הפכו כל מסך למסיבת אור — הצבעים מגיבים למוזיקה שמתנגנת דרך המיקרופון, או רצים אוטומטית בלי מיקרופון בכלל.">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='30' fill='%236366f1'/%3E%3C/svg%3E">
 
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: var(--bg);
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            transition: background-color 0.1s ease;
-        }
+<style>
+  :root{
+    --primary:#6366f1;
+    --primary-dark:#4f46e5;
+    --bg:#0f172a;
+    --panel:rgba(30,41,59,0.9);
+    --border:rgba(148,163,184,0.25);
+    --text:#f8fafc;
+    --muted:#94a3b8;
+  }
 
-        /* מסך הגדרות */
-        #setup-container {
-            background: rgba(30, 41, 59, 0.9);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 400px;
-            width: 90%;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
+  *{box-sizing:border-box;}
 
-        h2 { margin-top: 0; text-align: center; color: #f8fafc; }
+  body{
+    margin:0;
+    min-height:100svh;
+    width:100vw;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background-color:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    overflow:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
 
-        .setting-group {
-            margin-bottom: 20px;
-        }
+  body.flash-instant{transition:background-color 60ms linear;}
+  body.flash-smooth{transition:background-color 320ms ease;}
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
+  /* ---------- Setup screen ---------- */
+  #setup-container{
+    background:var(--panel);
+    padding:28px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    max-width:420px;
+    width:92%;
+    max-height:92vh;
+    overflow-y:auto;
+    z-index:100;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
 
-        .description {
-            font-size: 0.8rem;
-            color: #cbd5e1;
-            margin-bottom: 8px;
-            line-height: 1.3;
-        }
+  h2{margin-top:0;text-align:center;color:var(--text);font-size:1.4rem;}
 
-        input[type="range"], select {
-            width: 100%;
-            cursor: pointer;
-        }
+  .setting-group{margin-bottom:22px;}
 
-        #startBtn {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            background: var(--primary);
-            color: white;
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-        }
+  label{display:block;font-weight:bold;margin-bottom:5px;font-size:0.9rem;}
 
-        #startBtn:hover {
-            background: #4f46e5;
-            transform: scale(1.02);
-        }
+  .description{font-size:0.8rem;color:var(--muted);margin-bottom:10px;line-height:1.4;}
 
-        #visualizer-ui {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            text-align: center;
-        }
-    </style>
+  /* mode switch: mic-reactive vs auto */
+  .mode-switch{
+    display:flex;background:rgba(15,23,42,0.6);border-radius:10px;padding:4px;margin-bottom:20px;
+    border:1px solid var(--border);
+  }
+  .mode-switch button{
+    flex:1;padding:10px 6px;border:none;background:transparent;color:var(--muted);
+    border-radius:8px;font-size:0.85rem;font-weight:bold;cursor:pointer;transition:background .2s,color .2s;
+  }
+  .mode-switch button.active{background:var(--primary);color:white;}
+
+  /* color mode segmented buttons */
+  .segmented{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .segmented button{
+    padding:10px 6px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(15,23,42,0.5);color:var(--text);font-size:0.85rem;cursor:pointer;
+    transition:border-color .2s,background .2s,transform .15s;
+  }
+  .segmented button.active{border-color:var(--primary);background:rgba(99,102,241,0.25);transform:translateY(-1px);}
+
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  input[type="range"]{
+    flex:1;width:100%;cursor:pointer;accent-color:var(--primary);height:6px;
+  }
+  .slider-value{
+    min-width:56px;text-align:center;font-variant-numeric:tabular-nums;
+    background:rgba(15,23,42,0.6);border:1px solid var(--border);border-radius:6px;
+    padding:4px 6px;font-size:0.8rem;
+  }
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .toggle-row label{margin-bottom:0;flex:1;}
+  .switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+  .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+  .switch .track{
+    position:absolute;inset:0;background:rgba(15,23,42,0.7);border:1px solid var(--border);
+    border-radius:999px;transition:background .2s;
+  }
+  .switch .thumb{
+    position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;
+    background:var(--muted);transition:transform .2s,background .2s;
+  }
+  .switch input:checked + .track{background:rgba(99,102,241,0.5);}
+  .switch input:checked + .track + .thumb{transform:translateX(-20px);background:var(--primary);}
+
+  #micMeterWrap{display:none;margin-top:10px;}
+  #micMeter{
+    position:relative;height:14px;border-radius:999px;background:rgba(15,23,42,0.7);
+    border:1px solid var(--border);overflow:hidden;
+  }
+  #micMeterFill{
+    position:absolute;inset-inline-start:0;top:0;bottom:0;width:0%;
+    background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);transition:width 60ms linear;
+  }
+  #micMeterThreshold{
+    position:absolute;top:-3px;bottom:-3px;width:2px;background:white;
+    box-shadow:0 0 4px rgba(255,255,255,0.8);
+  }
+  #micTestBtn{
+    width:100%;padding:10px;margin-top:10px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(15,23,42,0.5);color:var(--text);cursor:pointer;font-size:0.85rem;
+  }
+  #micTestBtn:hover{border-color:var(--primary);}
+  #micStatus{font-size:0.75rem;color:var(--muted);margin-top:6px;min-height:1em;}
+
+  #startBtn{
+    width:100%;padding:15px;font-size:1.2rem;font-weight:bold;border:none;border-radius:10px;
+    background:var(--primary);color:white;cursor:pointer;transition:transform .2s,background .2s;
+  }
+  #startBtn:hover{background:var(--primary-dark);transform:scale(1.02);}
+
+  .safety-note{
+    font-size:0.72rem;color:var(--muted);text-align:center;margin-top:14px;line-height:1.5;
+  }
+
+  /* ---------- Party / visualizer screen ---------- */
+  #visualizer-ui{
+    display:none;
+    position:fixed;inset:0;
+  }
+
+  #pulse-ring{
+    position:fixed;top:50%;left:50%;width:40vmin;height:40vmin;border-radius:50%;
+    border:3px solid rgba(255,255,255,0.7);transform:translate(-50%,-50%) scale(0.6);
+    opacity:0;pointer-events:none;
+  }
+  #pulse-ring.beat{animation:pulse 500ms ease-out;}
+  @keyframes pulse{
+    0%{opacity:0.85;transform:translate(-50%,-50%) scale(0.6);}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.4);}
+  }
+
+  #controls-bar{
+    position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+    display:flex;gap:10px;align-items:center;background:rgba(15,23,42,0.55);
+    padding:10px 14px;border-radius:999px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.15);
+  }
+  #controls-bar button{
+    width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);
+    color:white;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .2s;
+  }
+  #controls-bar button:hover{background:rgba(255,255,255,0.3);}
+  #controls-bar .hint{font-size:0.75rem;color:rgba(255,255,255,0.85);padding:0 6px;white-space:nowrap;}
+
+  @media (max-width:420px){
+    #setup-container{padding:20px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    body.flash-smooth{transition:none;}
+    #pulse-ring.beat{animation:none;}
+  }
+</style>
 </head>
-<body>
+<body class="flash-instant">
 
-    <div id="setup-container">
-        <h2>הגדרות מסיבה 🕺</h2>
+<div id="setup-container">
+  <h2>הגדרות מסיבה 🕺</h2>
 
-        <div class="setting-group">
-            <label>בחירת צבעים:</label>
-            <p class="description">אקראי יחליף לכל צבע אפשרי. אפשר לבחור גוונים ספציפיים לאווירה מסוימת.</p>
-            <select id="colorMode">
-                <option value="random">אקראי לחלוטין (כל הצבעים)</option>
-                <option value="warm">צבעים חמים (אדום, כתום, צהוב)</option>
-                <option value="cool">צבעים קרים (כחול, סגול, תכלת)</option>
-                <option value="neon">צבעי ניאון (ירוק, ורוד, צהוב זרחני)</option>
-            </select>
-        </div>
+  <div class="mode-switch" role="tablist">
+    <button type="button" id="modeReactiveBtn" class="active" role="tab" aria-selected="true">🎤 מגיב למוזיקה</button>
+    <button type="button" id="modeAutoBtn" role="tab" aria-selected="false">🎵 אוטומטי (בלי מיקרופון)</button>
+  </div>
 
-        <div class="setting-group">
-            <label>רגישות מיקרופון:</label>
-            <p class="description">כמה "חזק" השיר צריך להיות כדי שהצבע יתחלף. (נמוך = מגיב לכל רעש, גבוה = רק לבאסים חזקים).</p>
-            <input type="range" id="sensitivity" min="30" max="150" value="80">
-        </div>
-
-        <div class="setting-group">
-            <label>קצב החלפה מקסימלי:</label>
-            <p class="description">זמן המתנה בין החלפות. מונע הבהובים מהירים מדי שעלולים להציק בעיניים.</p>
-            <input type="range" id="cooldown" min="100" max="1000" step="50" value="200">
-        </div>
-
-        <button id="startBtn">התחל מסיבה! 🎤</button>
+  <div id="reactiveSettings">
+    <div class="setting-group">
+      <label id="sensitivityLabel" for="sensitivity">רגישות מיקרופון:</label>
+      <p class="description">כמה "חזק" השיר צריך להיות כדי שהצבע יתחלף. נמוך = מגיב לכל רעש, גבוה = רק לבאסים חזקים.</p>
+      <div class="slider-row">
+        <input type="range" id="sensitivity" min="30" max="150" value="80" aria-labelledby="sensitivityLabel">
+        <span class="slider-value" id="sensitivityValue">80</span>
+      </div>
+      <div id="micMeterWrap">
+        <div id="micMeter"><div id="micMeterFill"></div><div id="micMeterThreshold"></div></div>
+      </div>
+      <button type="button" id="micTestBtn">🎙️ בדיקת מיקרופון</button>
+      <p id="micStatus"></p>
     </div>
+  </div>
 
-    <div id="visualizer-ui">
-        <p>המסיבה רצה... השמע מוזיקה!</p>
+  <div class="setting-group">
+    <label id="cooldownLabel" for="cooldown">קצב החלפה מקסימלי:</label>
+    <p class="description">זמן המתנה בין החלפות. מונע הבהובים מהירים מדי שעלולים להציק בעיניים.</p>
+    <div class="slider-row">
+      <input type="range" id="cooldown" min="100" max="1000" step="50" value="200" aria-labelledby="cooldownLabel">
+      <span class="slider-value" id="cooldownValue">200ms</span>
     </div>
+  </div>
 
-    <script>
-        const startBtn = document.getElementById('startBtn');
-        const setupContainer = document.getElementById('setup-container');
-        
-        let audioContext, analyser, dataArray;
-        
-        // משתני הגדרות שימשכו מה-UI
-        let config = {
-            colorMode: 'random',
-            sensitivity: 80,
-            cooldown: 200
-        };
+  <div class="setting-group">
+    <label>בחירת צבעים:</label>
+    <p class="description">אקראי יחליף לכל צבע אפשרי. אפשר לבחור גוונים ספציפיים לאווירה מסוימת.</p>
+    <div class="segmented" id="colorModeGroup" role="group">
+      <button type="button" data-mode="random" class="active">🎲 אקראי לחלוטין</button>
+      <button type="button" data-mode="warm">🔥 חמים</button>
+      <button type="button" data-mode="cool">❄️ קרים</button>
+      <button type="button" data-mode="neon">💫 ניאון</button>
+    </div>
+  </div>
 
-        let lastBeatTime = 0;
+  <div class="setting-group toggle-row">
+    <label for="smoothToggle">מעבר חלק בין צבעים</label>
+    <label class="switch" for="smoothToggle">
+      <input type="checkbox" id="smoothToggle">
+      <span class="track"></span>
+      <span class="thumb"></span>
+    </label>
+  </div>
 
-        startBtn.addEventListener('click', async () => {
-            // שמירת ההגדרות מהטופס
-            config.colorMode = document.getElementById('colorMode').value;
-            config.sensitivity = parseInt(document.getElementById('sensitivity').value);
-            config.cooldown = parseInt(document.getElementById('cooldown').value);
+  <div class="setting-group toggle-row">
+    <label for="wakeLockToggle">השארת המסך דלוק</label>
+    <label class="switch" for="wakeLockToggle">
+      <input type="checkbox" id="wakeLockToggle" checked>
+      <span class="track"></span>
+      <span class="thumb"></span>
+    </label>
+  </div>
 
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                setupContainer.style.display = 'none';
-                document.getElementById('visualizer-ui').style.display = 'block';
+  <button id="startBtn">התחל מסיבה! 🎤</button>
 
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(stream);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
+  <p class="safety-note">⚠️ האפליקציה גורמת למסך להבהב במהירות בהתאם למוזיקה. אנשים הרגישים לאורות מהבהבים (כולל אפילפסיה פוטוסנסיטיבית) מתבקשים להיזהר, או להפעיל "מעבר חלק" ולהגדיל את קצב ההחלפה המקסימלי.</p>
+</div>
 
-                source.connect(analyser);
-                detect();
-            } catch (err) {
-                alert("חובה לאשר מיקרופון");
-            }
-        });
+<div id="visualizer-ui">
+  <div id="pulse-ring"></div>
+  <div id="controls-bar">
+    <button type="button" id="stopBtn" title="עצור וחזור להגדרות" aria-label="עצור">⏹</button>
+    <button type="button" id="fullscreenBtn" title="מסך מלא" aria-label="מסך מלא">⛶</button>
+    <span class="hint">Esc לעצירה</span>
+  </div>
+</div>
 
-        function detect() {
-            requestAnimationFrame(detect);
-            analyser.getByteFrequencyData(dataArray);
+<script>
+(() => {
+  const STORAGE_KEY = 'partySettings';
 
-            // חישוב ממוצע עוצמה
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            let average = sum / dataArray.length;
+  const els = {
+    setup: document.getElementById('setup-container'),
+    viz: document.getElementById('visualizer-ui'),
+    startBtn: document.getElementById('startBtn'),
+    stopBtn: document.getElementById('stopBtn'),
+    fullscreenBtn: document.getElementById('fullscreenBtn'),
+    modeReactiveBtn: document.getElementById('modeReactiveBtn'),
+    modeAutoBtn: document.getElementById('modeAutoBtn'),
+    reactiveSettings: document.getElementById('reactiveSettings'),
+    sensitivity: document.getElementById('sensitivity'),
+    sensitivityValue: document.getElementById('sensitivityValue'),
+    cooldown: document.getElementById('cooldown'),
+    cooldownValue: document.getElementById('cooldownValue'),
+    colorModeGroup: document.getElementById('colorModeGroup'),
+    smoothToggle: document.getElementById('smoothToggle'),
+    wakeLockToggle: document.getElementById('wakeLockToggle'),
+    micTestBtn: document.getElementById('micTestBtn'),
+    micStatus: document.getElementById('micStatus'),
+    micMeterWrap: document.getElementById('micMeterWrap'),
+    micMeterFill: document.getElementById('micMeterFill'),
+    micMeterThreshold: document.getElementById('micMeterThreshold'),
+    pulseRing: document.getElementById('pulse-ring'),
+  };
 
-            const now = Date.now();
-            if (average > config.sensitivity && (now - lastBeatTime) > config.cooldown) {
-                changeColor();
-                lastBeatTime = now;
-            }
-        }
+  let config = {
+    partyMode: 'reactive', // 'reactive' | 'auto'
+    colorMode: 'random',
+    sensitivity: 80,
+    cooldown: 200,
+    smooth: false,
+    wakeLock: true,
+  };
 
-        function changeColor() {
-            let hue;
-            
-            // לוגיקה לבחירת צבע לפי המצב שנבחר
-            switch(config.colorMode) {
-                case 'warm':
-                    hue = Math.floor(Math.random() * 60); // 0-60 זה אדום עד צהוב
-                    break;
-                case 'cool':
-                    hue = Math.floor(Math.random() * (300 - 180) + 180); // 180-300 זה כחולים וסגולים
-                    break;
-                case 'neon':
-                    const neonHues = [300, 120, 60, 180]; // ורוד, ירוק, צהוב, ציאן
-                    hue = neonHues[Math.floor(Math.random() * neonHues.length)];
-                    break;
-                default:
-                    hue = Math.floor(Math.random() * 360); // הכל
-            }
+  // ---------- persisted settings ----------
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      Object.assign(config, saved);
+    } catch (e) { /* ignore corrupt storage */ }
+  }
 
-            document.body.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
-        }
-    </script>
+  function saveSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch (e) { /* storage unavailable */ }
+  }
+
+  function applySettingsToUI() {
+    els.sensitivity.value = config.sensitivity;
+    els.sensitivityValue.textContent = config.sensitivity;
+    els.cooldown.value = config.cooldown;
+    els.cooldownValue.textContent = config.cooldown + 'ms';
+    els.smoothToggle.checked = config.smooth;
+    els.wakeLockToggle.checked = config.wakeLock;
+    setActiveButton(els.colorModeGroup, config.colorMode);
+    setPartyMode(config.partyMode, false);
+    positionThreshold();
+  }
+
+  function setActiveButton(group, value) {
+    group.querySelectorAll('button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === value);
+    });
+  }
+
+  function setPartyMode(mode, save = true) {
+    config.partyMode = mode;
+    const isReactive = mode === 'reactive';
+    els.modeReactiveBtn.classList.toggle('active', isReactive);
+    els.modeReactiveBtn.setAttribute('aria-selected', String(isReactive));
+    els.modeAutoBtn.classList.toggle('active', !isReactive);
+    els.modeAutoBtn.setAttribute('aria-selected', String(!isReactive));
+    els.reactiveSettings.style.display = isReactive ? '' : 'none';
+    if (save) saveSettings();
+  }
+
+  els.modeReactiveBtn.addEventListener('click', () => setPartyMode('reactive'));
+  els.modeAutoBtn.addEventListener('click', () => setPartyMode('auto'));
+
+  els.colorModeGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    config.colorMode = btn.dataset.mode;
+    setActiveButton(els.colorModeGroup, config.colorMode);
+    saveSettings();
+  });
+
+  els.sensitivity.addEventListener('input', () => {
+    config.sensitivity = parseInt(els.sensitivity.value, 10);
+    els.sensitivityValue.textContent = config.sensitivity;
+    positionThreshold();
+    saveSettings();
+  });
+
+  els.cooldown.addEventListener('input', () => {
+    config.cooldown = parseInt(els.cooldown.value, 10);
+    els.cooldownValue.textContent = config.cooldown + 'ms';
+    saveSettings();
+  });
+
+  els.smoothToggle.addEventListener('change', () => {
+    config.smooth = els.smoothToggle.checked;
+    saveSettings();
+  });
+
+  els.wakeLockToggle.addEventListener('change', () => {
+    config.wakeLock = els.wakeLockToggle.checked;
+    saveSettings();
+  });
+
+  function positionThreshold() {
+    const pct = (config.sensitivity / 255) * 100;
+    els.micMeterThreshold.style.insetInlineStart = Math.min(100, Math.max(0, pct)) + '%';
+  }
+
+  // ---------- audio ----------
+  let audioContext, analyser, dataArray, micStream;
+  let meterRAF = null;
+  let detectRAF = null;
+  let lastBeatTime = 0;
+
+  function describeMediaError(err) {
+    switch (err.name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        return 'הגישה למיקרופון נדחתה. יש לאשר גישה בהגדרות הדפדפן ולנסות שוב.';
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'לא נמצא מיקרופון במכשיר הזה.';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'המיקרופון תפוס על ידי אפליקציה אחרת.';
+      default:
+        return 'שגיאה בגישה למיקרופון: ' + (err.message || err.name || 'לא ידועה');
+    }
+  }
+
+  async function ensureMicStream() {
+    if (micStream) return micStream;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('הדפדפן הזה לא תומך בגישה למיקרופון (או שהאתר לא נטען דרך HTTPS).');
+    }
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') await audioContext.resume();
+    const source = audioContext.createMediaStreamSource(micStream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    source.connect(analyser);
+    return micStream;
+  }
+
+  function currentLevel() {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    return sum / dataArray.length;
+  }
+
+  function stopMic() {
+    if (detectRAF) cancelAnimationFrame(detectRAF);
+    if (meterRAF) cancelAnimationFrame(meterRAF);
+    detectRAF = meterRAF = null;
+    if (micStream) {
+      micStream.getTracks().forEach(t => t.stop());
+      micStream = null;
+    }
+    if (audioContext) {
+      audioContext.close().catch(() => {});
+      audioContext = null;
+    }
+    analyser = null;
+  }
+
+  // ---------- mic test / calibration meter ----------
+  els.micTestBtn.addEventListener('click', async () => {
+    els.micStatus.textContent = 'מבקש גישה למיקרופון...';
+    try {
+      await ensureMicStream();
+      els.micMeterWrap.style.display = 'block';
+      els.micStatus.textContent = 'המיקרופון פעיל — דברו או נגנו מוזיקה כדי לראות את העוצמה.';
+      positionThreshold();
+      const loop = () => {
+        const level = currentLevel();
+        els.micMeterFill.style.width = Math.min(100, (level / 255) * 100) + '%';
+        meterRAF = requestAnimationFrame(loop);
+      };
+      loop();
+    } catch (err) {
+      els.micStatus.textContent = describeMediaError(err);
+    }
+  });
+
+  // ---------- pulse ring ----------
+  function triggerPulse() {
+    els.pulseRing.classList.remove('beat');
+    void els.pulseRing.offsetWidth; // restart animation
+    els.pulseRing.classList.add('beat');
+  }
+
+  // ---------- color logic ----------
+  function pickHue(mode) {
+    switch (mode) {
+      case 'warm': return Math.floor(Math.random() * 60);
+      case 'cool': return Math.floor(Math.random() * (300 - 180) + 180);
+      case 'neon': {
+        const neonHues = [300, 120, 60, 180];
+        return neonHues[Math.floor(Math.random() * neonHues.length)];
+      }
+      default: return Math.floor(Math.random() * 360);
+    }
+  }
+
+  function changeColor() {
+    const hue = pickHue(config.colorMode);
+    document.body.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+    triggerPulse();
+  }
+
+  // ---------- reactive loop ----------
+  function detect() {
+    detectRAF = requestAnimationFrame(detect);
+    const level = currentLevel();
+    const now = performance.now();
+    if (level > config.sensitivity && (now - lastBeatTime) > config.cooldown) {
+      changeColor();
+      lastBeatTime = now;
+    }
+  }
+
+  // ---------- auto loop ----------
+  let autoTimer = null;
+  function startAuto() {
+    changeColor();
+    autoTimer = setInterval(changeColor, config.cooldown);
+  }
+  function stopAuto() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = null;
+  }
+
+  // ---------- wake lock ----------
+  let wakeLockSentinel = null;
+  async function requestWakeLock() {
+    if (!config.wakeLock || !('wakeLock' in navigator)) return;
+    try {
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+    } catch (e) { /* not critical if it fails */ }
+  }
+  function releaseWakeLock() {
+    if (wakeLockSentinel) {
+      wakeLockSentinel.release().catch(() => {});
+      wakeLockSentinel = null;
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && running && config.wakeLock) requestWakeLock();
+  });
+
+  // ---------- start / stop ----------
+  let running = false;
+
+  els.startBtn.addEventListener('click', async () => {
+    document.body.classList.toggle('flash-smooth', config.smooth);
+    document.body.classList.toggle('flash-instant', !config.smooth);
+
+    if (config.partyMode === 'reactive') {
+      els.startBtn.disabled = true;
+      els.startBtn.textContent = 'מבקש גישה למיקרופון...';
+      try {
+        await ensureMicStream();
+      } catch (err) {
+        els.micStatus.textContent = describeMediaError(err);
+        els.startBtn.disabled = false;
+        els.startBtn.textContent = 'התחל מסיבה! 🎤';
+        return;
+      }
+      els.startBtn.disabled = false;
+      els.startBtn.textContent = 'התחל מסיבה! 🎤';
+      if (meterRAF) { cancelAnimationFrame(meterRAF); meterRAF = null; }
+      detect();
+    } else {
+      startAuto();
+    }
+
+    running = true;
+    els.setup.style.display = 'none';
+    els.viz.style.display = 'block';
+    requestWakeLock();
+  });
+
+  function stopParty() {
+    if (!running) return;
+    running = false;
+    stopAuto();
+    stopMic();
+    releaseWakeLock();
+    els.viz.style.display = 'none';
+    els.setup.style.display = 'block';
+    els.micMeterWrap.style.display = 'none';
+    els.micStatus.textContent = '';
+  }
+
+  els.stopBtn.addEventListener('click', stopParty);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && running) stopParty();
+  });
+
+  els.fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.();
+    }
+  });
+  if (!document.fullscreenEnabled) {
+    els.fullscreenBtn.style.display = 'none';
+  }
+
+  // ---------- init ----------
+  loadSettings();
+  applySettingsToUI();
+})();
+</script>
 </body>
 </html>
